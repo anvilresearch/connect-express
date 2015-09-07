@@ -1,0 +1,19 @@
+{
+  "name": "anvil-connect-express",
+  "version": "0.1.0",
+  "description": "Anvil Connect client for Express",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anvilresearch/connect-express.git"
+  },
+  "author": "Anvil Research, Inc",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/anvilresearch/connect-express/issues"
+  },
+  "homepage": "https://github.com/anvilresearch/connect-express"
+}
