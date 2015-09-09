@@ -22,5 +22,8 @@
     "sinon": "^1.16.1",
     "sinon-chai": "^2.8.0",
     "standard": "^5.2.1"
+  },
+  "dependencies": {
+    "anvil-connect-nodejs": "^0.2.0"
   }
 }
