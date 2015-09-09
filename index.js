@@ -120,16 +120,32 @@ function verifier (options) {
 
     // Access token found
     } else {
-      // verify the token and carry on
-      self.client.verify(accessToken, options)
-        .then(function (accessTokenClaims) {
-          req.accessToken = accessToken
-          req.accessTokenClaims = accessTokenClaims
-          next()
+      function invokeVerification () {
+        self.client.verify(accessToken, options)
+          .then(function (accessTokenClaims) {
+            req.accessToken = accessToken
+            req.accessTokenClaims = accessTokenClaims
+            next()
+          })
+          .catch(function (err) {
+            nexter(err)
+          })
+      }
+
+      // If JWKs are not set, attempt to retrieve them first
+      if (!self.client.jwks) {
+        self.client.discover().then(function () {
+          return self.client.getJWKs()
         })
+        // then verify the token and carry on
+        .then(invokeVerification)
         .catch(function (err) {
           nexter(err)
         })
+      // otherwise, verify the token right away
+      } else {
+        invokeVerification()
+      }
     }
   }
 }
