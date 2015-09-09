@@ -201,6 +201,7 @@ describe 'Anvil Connect for Express', ->
         json = sinon.spy()
         status = sinon.spy -> json: json
 
+        anvil.client.jwks = {}
         sinon.stub(AnvilConnect.prototype, 'verify')
           .returns new Promise (resolve, reject) ->
             resolve({ jti: 'random' })
@@ -238,6 +239,7 @@ describe 'Anvil Connect for Express', ->
         json = sinon.spy()
         status = sinon.spy -> json: json
 
+        anvil.client.jwks = {}
         sinon.stub(AnvilConnect.prototype, 'verify')
           .returns new Promise (resolve, reject) ->
             resolve({ jti: 'random' })
@@ -275,6 +277,7 @@ describe 'Anvil Connect for Express', ->
         json = sinon.spy()
         status = sinon.spy -> json: json
 
+        anvil.client.jwks = {}
         sinon.stub(AnvilConnect.prototype, 'verify')
           .returns new Promise (resolve, reject) ->
             resolve({ jti: 'random' })
@@ -312,6 +315,7 @@ describe 'Anvil Connect for Express', ->
         json = sinon.spy()
         status = sinon.spy -> json: json
 
+        anvil.client.jwks = {}
         sinon.stub(AnvilConnect.prototype, 'verify')
           .returns new Promise (resolve, reject) ->
             reject({ error: 'invalid_token' })
@@ -339,5 +343,60 @@ describe 'Anvil Connect for Express', ->
         json.should.have.been.called
 
 
+    describe 'with valid token and no JWKs', ->
 
+      before ->
+        anvil = new AnvilConnectExpress()
 
+        json = sinon.spy()
+        status = sinon.spy -> json: json
+
+        sinon.stub(AnvilConnect.prototype, 'discover')
+          .returns new Promise (resolve, reject) ->
+            anvil.client.configuration =
+              jwks_uri: 'https://connect.example.com/jwks'
+            resolve()
+        sinon.stub(AnvilConnect.prototype, 'getJWKs')
+          .returns new Promise (resolve, reject) ->
+            anvil.client.jwks = { keys: 'fakedata' }
+            resolve()
+        sinon.stub(AnvilConnect.prototype, 'verify')
+          .returns new Promise (resolve, reject) ->
+            resolve({ jti: 'random' })
+
+        req =
+          query: access_token: 'token'
+        res = status: status
+        next = sinon.spy()
+
+        verifier = anvil.verifier()
+        verifier req, res, next
+
+      after ->
+        AnvilConnect.prototype.discover.restore()
+        AnvilConnect.prototype.getJWKs.restore()
+        AnvilConnect.prototype.verify.restore()
+
+      it 'should initiate discovery', ->
+        anvil.client.configuration.should.eql
+          jwks_uri: 'https://connect.example.com/jwks'
+
+      it 'should retrieve JWKs', ->
+        anvil.client.jwks.should.eql { keys: 'fakedata' }
+
+      it 'should not respond', ->
+        status.should.not.have.been.called
+        json.should.not.have.been.called
+
+      it 'should not respond', ->
+        status.should.not.have.been.called
+        json.should.not.have.been.called
+
+      it 'should set access token on request', ->
+        req.accessToken.should.equal 'token'
+
+      it 'should set decoded access token claims on request', ->
+        req.accessTokenClaims.jti.should.equal 'random'
+
+      it 'should continue', ->
+        next.should.have.been.called
