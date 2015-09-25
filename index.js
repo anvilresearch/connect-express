@@ -109,6 +109,18 @@ function verifier (options) {
       accessToken = req.body.access_token
     }
 
+    function invokeVerification () {
+      self.client.verify(accessToken, options)
+        .then(function (accessTokenClaims) {
+          req.accessToken = accessToken
+          req.accessTokenClaims = accessTokenClaims
+          next()
+        })
+        .catch(function (err) {
+          nexter(err)
+        })
+    }
+
     // Missing access token
     if (!accessToken) {
       return nexter(new UnauthorizedError({
@@ -120,18 +132,6 @@ function verifier (options) {
 
     // Access token found
     } else {
-      function invokeVerification () {
-        self.client.verify(accessToken, options)
-          .then(function (accessTokenClaims) {
-            req.accessToken = accessToken
-            req.accessTokenClaims = accessTokenClaims
-            next()
-          })
-          .catch(function (err) {
-            nexter(err)
-          })
-      }
-
       // If JWKs are not set, attempt to retrieve them first
       if (!self.client.jwks) {
         self.client.discover().then(function () {
