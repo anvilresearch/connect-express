@@ -1,9 +1,31 @@
 # Anvil Connect lib for Express
+[![NPM Version](https://img.shields.io/npm/v/anvil-connect-express.svg?style=flat)](https://npm.im/anvil-connect-express)
 [![Build Status](https://travis-ci.org/anvilresearch/connect-express.svg?branch=master)](https://travis-ci.org/anvilresearch/connect-express)
 
-### Configure
+### Overview
 
-Require the project and configure the client with an `issuer`, a `client_id`, and a `client_secret`.
+This is a simple auth middleware for Express.js apps that works with the 
+[Anvil Connect](https://github.com/anvilresearch/connect) 
+authentication/authorization server (based on the 
+[OpenID Connect](http://openid.net/connect/) and OAuth 2 stack), and the 
+[`anvil-connect-nodejs`](https://github.com/anvilresearch/connect-nodejs) client.
+
+### Installation
+
+This library assumes that you have Node.js installed (it's developed and tested
+on Node v4 and above), and are familiar with Express routes and middleware.
+To install dependencies:
+
+```
+npm install
+```
+
+### Configuration
+
+Require the project and configure the client with an `issuer`, a `client_id`, 
+and a `client_secret`. For more information on registering and configuring
+OpenID Connect clients, see the 
+[Anvil Connect Documentation](https://github.com/anvilresearch/connect-docs).
 
 ```javascript
 var AnvilConnect = require('anvil-connect-express')
@@ -20,9 +42,10 @@ var express = require('express')
 var app = express()
 ```
 
-### Authorize
+### Authorizing
 
-The Anvil Connect lib for Express allows you to authorize requests from one to multiple endpoints or even the entire server.
+The Anvil Connect lib for Express allows you to authorize requests from one to 
+multiple endpoints or even the entire server.
 
 ##### Authorize a single endpoint
 ```javascript
@@ -44,9 +67,11 @@ app.get('/authed', function (req, res, next) {
 })
 ```
 
-### Customize
+### Customizations
 
-The Anvil Connect lib for Express allows for some customization. You can authorize with a required scope or even whitelist clients you want to allow by client_id.
+The Anvil Connect lib for Express allows for some customization. You can 
+authorize with a required scope or even whitelist clients you want to allow by 
+`client_id`.
 
 ##### Authorize with a required scope
 
@@ -82,3 +107,15 @@ var authorize = anvil.verifier({
   ]
 })
 ```
+
+### Unit Testing
+
+To run the unit tests after installation:
+
+```
+npm test
+```
+
+### License
+
+MIT
