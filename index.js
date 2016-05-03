@@ -129,6 +129,8 @@ AnvilConnectExpress.prototype.extractToken = extractToken
  * @param [options.allowNoToken=false] {Boolean} Do not raise 'Access to token
  *   is required' error if set to true. Useful for access to authenticated
  *   but allow-anyone resources.
+ * @param [options.loadUserInfo=false] {Boolean} If true, loads the user details
+ *   from the provider's `/userinfo` endpoint, and sets them to `req.userInfo`
  * @param [options.client_id] {String}
  * @param [options.client_secret] {String}
  * @param [options.clients] {Array<String>} Whitelist of client ids (restrict
@@ -142,6 +144,7 @@ AnvilConnectExpress.prototype.extractToken = extractToken
 function verifier (options) {
   options = options || {}
   var allowNoToken = options.allowNoToken || false
+  var loadUserInfo = options.loadUserInfo || false
   var self = this
 
   return function (req, res, next) {
@@ -163,9 +166,20 @@ function verifier (options) {
           .then(function () {
             return self.client.getJWKs()
           })
-          // then verify the token and carry on
           .then(function () {
-            self.verifyToken(req, accessToken, next, nextError, options)
+            // then verify the token and carry on
+            return self.verifyToken(req, accessToken, next, nextError, options)
+          })
+          .then(function () {
+            // optionally load user profile from OP's /userinfo
+            if (loadUserInfo) {
+              return self.client.userInfo({token: accessToken})
+            }
+          })
+          .then(function (userInfo) {
+            if (userInfo) {
+              req.userInfo = userInfo
+            }
           })
           .catch(function (err) {
             nextError(err)
@@ -191,7 +205,7 @@ AnvilConnectExpress.prototype.verifier = verifier
  *   the `verifier()` method above)
  */
 function verifyToken (req, accessToken, next, nextError, options) {
-  this.client.verify(accessToken, options)
+  return this.client.verify(accessToken, options)
     .then(function (accessTokenClaims) {
       req.accessToken = accessToken
       req.accessTokenClaims = accessTokenClaims

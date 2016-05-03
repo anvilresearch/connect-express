@@ -91,6 +91,19 @@ app.get('/maybe-protected', anvil.verifier(verifyOptions), function (req, res, n
 })
 ```
 
+##### Optionally Load User Info
+
+In addition to parsing and verifying the access token, you can ask `verifier()`
+to also load user profile details from the OpenID Provider's `/userinfo` 
+endpoint:
+
+```js
+var verifyOptions = { loadUserInfo: true }
+app.get('/protected', anvil.verifier(verifyOptions), function (req, res, next) {
+  // The verifier parses the access token, and also loads user profile
+})
+```
+
 ### Customizations
 
 The Anvil Connect lib for Express allows for some customization. You can 
