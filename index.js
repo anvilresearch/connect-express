@@ -126,7 +126,9 @@ AnvilConnectExpress.prototype.extractToken = extractToken
  * @method verifier
  * @param [options] {Object} Options hashmap for overriding OIDC client options
  *   (the client's id, issuer etc should already be set at this point)
- * @param [options.failMissingToken=false] {Boolean}
+ * @param [options.allowNoToken=false] {Boolean} Do not raise 'Access to token
+ *   is required' error if set to true. Useful for access to authenticated
+ *   but allow-anyone resources.
  * @param [options.client_id] {String}
  * @param [options.client_secret] {String}
  * @param [options.clients] {Array<String>} Whitelist of client ids (restrict
@@ -139,6 +141,7 @@ AnvilConnectExpress.prototype.extractToken = extractToken
  */
 function verifier (options) {
   options = options || {}
+  var allowNoToken = options.allowNoToken || false
   var self = this
 
   return function (req, res, next) {
@@ -146,7 +149,7 @@ function verifier (options) {
     var accessToken = self.extractToken(req, nextError)
 
     // Missing access token
-    if (!accessToken) {
+    if (!accessToken && !allowNoToken) {
       return nextError(new UnauthorizedError({
         realm: 'user',
         error: 'invalid_request',
@@ -184,7 +187,7 @@ AnvilConnectExpress.prototype.verifier = verifier
  * @param accessToken {AccessToken} JWT AccessToken for OpenID Connect
  * @param next {Function} Express next() callback
  * @param nextError {Function} Error handler
- * @param options {Object} Options hashmap (see option param docs for
+ * @param [options] {Object} Options hashmap (see option param docs for
  *   the `verifier()` method above)
  */
 function verifyToken (req, accessToken, next, nextError, options) {
