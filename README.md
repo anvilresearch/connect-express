@@ -71,13 +71,15 @@ app.get('/protected-two', function (req, res, next) {
 ##### Optionally Authenticate
 
 By default, as in the above examples, if an endpoint uses the `verifier()`
-middleware, it will throw an authorization error if an access token is not
-included with that request: `An access token is required`.
+middleware, it will throw an HTTP 
+[401 Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1) 
+`An access token is required` error if an access token is not included with that 
+request.
 
-However, for some use cases, the access token is optional (but you still want
+However, for some use cases, the access token is optional, but you still want
 to invoke `verifier()` so that the token is parsed, and the credentials are
 added to the `req` object for downstream use. For example, if the resource was 
-set to 'allow anyone to read' by its owner, a request with no  token is 
+set to 'allow anyone to read' by its owner, a request with no token is 
 acceptable - no error should be raised until the control flow passes to a 
 downstream authorization component.
 

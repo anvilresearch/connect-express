@@ -138,7 +138,8 @@ AnvilConnectExpress.prototype.extractToken = extractToken
  * @param [options.issuer] {String} OpenID Connect provider url
  * @param [options.key] {String} JWK key
  * @param [options.scope] {String}
- * @throws {UnauthorizedError} HTTP 400 error on invalid auth headers
+ * @throws {UnauthorizedError} HTTP 400 error on invalid auth headers, or an
+ *   HTTP 401 Unauthorized error for a missing access token.
  * @return {Function} Express middleware handler function
  */
 function verifier (options) {
@@ -157,7 +158,7 @@ function verifier (options) {
         realm: 'user',
         error: 'invalid_request',
         error_description: 'An access token is required',
-        statusCode: 400
+        statusCode: 401
       }))
     } else { // Access token found
       // If JWKs are not set, attempt to retrieve them first
