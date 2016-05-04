@@ -58,7 +58,7 @@ AnvilConnectExpress.prototype.errorHandler = errorHandler
  * @param req {IncomingMessage} Express request object
  * @param nextError {Function} Error handler
  * @throws {UnauthorizedError} HTTP 400 error on invalid auth headers
- * @returns {AccessToken} JWT Access Token
+ * @return {AccessToken} JWT Access Token
  */
 function extractToken (req, nextError) {
   // Check for an access token in the Authorization header
@@ -204,6 +204,7 @@ AnvilConnectExpress.prototype.verifier = verifier
  * @param nextError {Function} Error handler
  * @param [options] {Object} Options hashmap (see option param docs for
  *   the `verifier()` method above)
+ * @throws {UnauthorizedError} HTTP 401 or 403 errors thrown by client.verify()
  */
 function verifyToken (req, accessToken, next, nextError, options) {
   return this.client.verify(accessToken, options)
