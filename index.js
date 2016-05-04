@@ -21,7 +21,7 @@ var UnauthorizedError = AnvilConnect.UnauthorizedError
 function AnvilConnectExpress (options) {
   options = options || {}
   this.client = new AnvilConnect(options)
-  this.respond = options.respond || true
+  this.respond = 'respond' in options ? options.respond : true
 }
 
 /**
