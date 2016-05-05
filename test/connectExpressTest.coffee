@@ -179,8 +179,8 @@ describe 'Anvil Connect for Express', ->
         verifier = anvil.verifier()
         verifier req, res, next
 
-      it 'should respond 400', ->
-        status.should.have.been.calledWith 400
+      it 'should respond 401', ->
+        status.should.have.been.calledWith 401
 
       it 'should respond with an error', ->
         json.should.have.been.calledWith sinon.match({
