@@ -51,36 +51,59 @@ function errorHandler (req, res, next) {
 AnvilConnectExpress.prototype.errorHandler = errorHandler
 
 /**
+ * Extracts and returns the issuer URL from an OIDC access token.
+ * Usage (inside an express route/handler):
+ *
+ *   ```
+ *   try {
+ *     var issuer = client.extractIssuer(req)
+ *   } catch (err) {
+ *     next(err)  // handle potential HTTP 400 error
+ *   }
+ *   // issuer is now available for use with initProvider(), register(), etc
+ *   ```
+ * @method extractIssuer
+ * @param req {IncomingMessage} Express request object
+ * @throws {UnauthorizedError} HTTP 400 error on invalid auth headers
+ * @return {String|Null} Issuer url (`null` if no token is present).
+ */
+function extractIssuer (req) {
+  var token = this.extractToken(req)
+  return this.client.extractIssuer(token)
+}
+AnvilConnectExpress.prototype.extractIssuer = extractIssuer
+
+/**
  * Extracts and returns an OIDC AccessToken. First looks in the auth
  * header, then tries the query params in the request URI, and lastly
  * looks in the request body (for a form-encoded token).
  * @method extractToken
+ * @private
  * @param req {IncomingMessage} Express request object
- * @param nextError {Function} Error handler
  * @throws {UnauthorizedError} HTTP 400 error on invalid auth headers
- * @return {AccessToken} JWT Access Token
+ * @return {String|Null} JWT Access Token (in encoded string form)
  */
-function extractToken (req, nextError) {
+function extractToken (req) {
+  var accessToken
   // Check for an access token in the Authorization header
   if (req.headers && req.headers.authorization) {
     var components = req.headers.authorization.split(' ')
     var scheme = components[0]
     var credentials = components[1]
-    var accessToken
 
     if (components.length !== 2) {
-      return nextError(new UnauthorizedError({
+      throw new UnauthorizedError({
         error: 'invalid_request',
         error_description: 'Invalid authorization header',
         statusCode: 400
-      }))
+      })
     }
     if (scheme !== 'Bearer') {
-      return nextError(new UnauthorizedError({
+      throw new UnauthorizedError({
         error: 'invalid_request',
         error_description: 'Invalid authorization scheme',
         statusCode: 400
-      }))
+      })
     }
     accessToken = credentials
   }
@@ -88,11 +111,11 @@ function extractToken (req, nextError) {
   // Check for an access token in the request URI
   if (req.query && req.query.access_token) {
     if (accessToken) {
-      return nextError(new UnauthorizedError({
+      throw new UnauthorizedError({
         error: 'invalid_request',
         error_description: 'Multiple authentication methods',
         statusCode: 400
-      }))
+      })
     }
     accessToken = req.query.access_token
   }
@@ -100,19 +123,19 @@ function extractToken (req, nextError) {
   // Check for an access token in the request body
   if (req.body && req.body.access_token) {
     if (accessToken) {
-      return nextError(new UnauthorizedError({
+      throw new UnauthorizedError({
         error: 'invalid_request',
         error_description: 'Multiple authentication methods',
         statusCode: 400
-      }))
+      })
     }
     if (req.headers &&
       req.headers['content-type'] !== 'application/x-www-form-urlencoded') {
-      return nextError(new UnauthorizedError({
+      throw new UnauthorizedError({
         error: 'invalid_request',
         error_description: 'Invalid content-type',
         statusCode: 400
-      }))
+      })
     }
     accessToken = req.body.access_token
   }
@@ -139,7 +162,7 @@ AnvilConnectExpress.prototype.extractToken = extractToken
  * @param [options.key] {String} JWK key
  * @param [options.scope] {String}
  * @throws {UnauthorizedError} HTTP 400 error on invalid auth headers, or an
- *   HTTP 401 Unauthorized error for a missing access token.
+ *   HTTP 401 or 403 Unauthorized errors for a missing/invalid access token.
  * @return {Function} Express middleware handler function
  */
 function verifier (options) {
@@ -150,9 +173,15 @@ function verifier (options) {
 
   return function (req, res, next) {
     var nextError = self.errorHandler(req, res, next)
-    var accessToken = self.extractToken(req, nextError)
+    var accessToken
+    try {
+      accessToken = self.extractToken(req)
+    } catch (err) {
+      // Catch the HTTP 400 invalid token errors
+      return nextError(err)
+    }
 
-    // Missing access token
+    // Missing access token, exit with error
     if (!accessToken && !allowNoToken) {
       return nextError(new UnauthorizedError({
         realm: 'user',
@@ -160,36 +189,38 @@ function verifier (options) {
         error_description: 'An access token is required',
         statusCode: 401
       }))
-    } else { // Access token found
-      // If JWKs are not set, attempt to retrieve them first
-      if (!self.client.jwks) {
-        self.client.discover()
-          .then(function () {
-            return self.client.getJWKs()
-          })
-          .then(function () {
-            // then verify the token and carry on
-            return self.verifyToken(req, accessToken, next, nextError, options)
-          })
-          .then(function () {
-            // optionally load user profile from OP's /userinfo
-            if (loadUserInfo) {
-              return self.client.userInfo({token: accessToken})
-            }
-          })
-          .then(function (userInfo) {
-            if (userInfo) {
-              req.userInfo = userInfo
-            }
-          })
+    }
+    // Access token is present
+    return Promise.resolve()
+      .then(function () {
+        // If JWKs are not set, attempt to retrieve them first
+        if (!self.client.jwks) {
+          return self.client.initProvider()
+        }
+      })
+      .then(function () {
+        // provider is initialized, public keys loaded
+        // verify the token and carry on
+        return self.verifyToken(req, accessToken, options)
           .catch(function (err) {
             nextError(err)
           })
-      // otherwise, verify the token right away
-      } else {
-        self.verifyToken(req, accessToken, next, nextError, options)
-      }
-    }
+      })
+      .then(function () {
+        // optionally load user profile from OP's /userinfo
+        if (loadUserInfo) {
+          return self.client.userInfo({ token: accessToken })
+        }
+      })
+      .then(function (userInfo) {
+        if (userInfo) {
+          req.userInfo = userInfo
+        }
+        next()
+      })
+      .catch(function (err) {
+        nextError(err)
+      })
   }
 }
 AnvilConnectExpress.prototype.verifier = verifier
@@ -199,22 +230,17 @@ AnvilConnectExpress.prototype.verifier = verifier
  * use.
  * @method verifyToken
  * @param req {IncomingMessage} Express request object
- * @param accessToken {AccessToken} JWT AccessToken for OpenID Connect
- * @param next {Function} Express next() callback
- * @param nextError {Function} Error handler
+ * @param accessToken {String} JWT AccessToken for OpenID Connect
  * @param [options] {Object} Options hashmap (see option param docs for
  *   the `verifier()` method above)
  * @throws {UnauthorizedError} HTTP 401 or 403 errors thrown by client.verify()
+ * @return {Promise}
  */
-function verifyToken (req, accessToken, next, nextError, options) {
+function verifyToken (req, accessToken, options) {
   return this.client.verify(accessToken, options)
     .then(function (accessTokenClaims) {
       req.accessToken = accessToken
       req.accessTokenClaims = accessTokenClaims
-      next()
-    })
-    .catch(function (err) {
-      nextError(err)
     })
 }
 AnvilConnectExpress.prototype.verifyToken = verifyToken

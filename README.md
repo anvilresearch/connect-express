@@ -28,10 +28,10 @@ OpenID Connect clients, see the
 [Anvil Connect Documentation](https://github.com/anvilresearch/connect-docs).
 
 ```javascript
-var AnvilConnect = require('anvil-connect-express')
+var AnvilConnectExpress = require('anvil-connect-express')
 
-// configure the client
-var anvil = new AnvilConnect({
+// configure the REST client
+var oidc = new AnvilConnectExpress({
   issuer: 'https://connect.example.com',
   client_id: 'YOUR_CLIENT_ID_HERE',
   client_secret: 'YOUR_CLIENT_SECRET_HERE'
@@ -50,14 +50,14 @@ the entire server).
 
 ##### Single endpoint
 ```javascript
-app.get('/protected', anvil.verifier(), function (req, res, next) {
+app.get('/protected', oidc.verifier(), function (req, res, next) {
   // This endpoint is authenticated and authorized
 })
 ```
 
 ##### All endpoints
 ```javascript
-app.use(anvil.verifier())
+app.use(oidc.verifier())
 
 app.get('/protected-one', function (req, res, next) {
   // This endpoint is authenticated and authorized
@@ -87,7 +87,7 @@ In this case, set the optional parameter `allowNoToken` to true:
 
 ```js
 var verifyOptions = { allowNoToken: true }
-app.get('/maybe-protected', anvil.verifier(verifyOptions), function (req, res, next) {
+app.get('/maybe-protected', oidc.verifier(verifyOptions), function (req, res, next) {
   // The verifier parses the access token and adds it to `req`
   // but does not raise an error if it's missing
 })
@@ -101,7 +101,7 @@ endpoint:
 
 ```js
 var verifyOptions = { loadUserInfo: true }
-app.get('/protected', anvil.verifier(verifyOptions), function (req, res, next) {
+app.get('/protected', oidc.verifier(verifyOptions), function (req, res, next) {
   // The verifier parses the access token, and also loads user profile
 })
 ```
@@ -116,7 +116,7 @@ authorize with a required scope or even whitelist clients you want to allow by
 
 ```javascript
 // authorize one or more endpoints with a required scope
-var authorize = anvil.verifier({ scope: 'research' })
+var authorize = oidc.verifier({ scope: 'research' })
 app.get('/authenticated', authorize, function (req, res, next) {
   // This endpoint is authenticated with a required scope...
 })
@@ -124,7 +124,7 @@ app.get('/authenticated', authorize, function (req, res, next) {
 
 ```javascript
 //Authorize your entire server with a required scope
-app.use(anvil.verifier({ scope: 'myapp' }))
+app.use(oidc.verifier({ scope: 'myapp' }))
 
 app.get('/authenticated', function (req, res, next) {
   // This endpoint is authenticated with a required scope...
@@ -138,7 +138,7 @@ app.get('/authed', function (req, res, next) {
 ##### Restrict to specific clients
 
 ```javascript
-var authorize = anvil.verifier({
+var authorize = oidc.verifier({
   clients: [
     // whitelist clients you want to allow by client_id
     '8206cab0-3712-4841-bb6c-c347799e2458',
