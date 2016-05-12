@@ -31,6 +31,6 @@
     "sinon-chai": "^2.8.0"
   },
   "dependencies": {
-    "anvil-connect-nodejs": "^0.3.0"
+    "anvil-connect-nodejs": "^0.4.0"
   }
 }
