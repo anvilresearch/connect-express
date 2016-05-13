@@ -1,6 +1,6 @@
 {
   "name": "anvil-connect-express",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Anvil Connect client for Express",
   "main": "index.js",
   "scripts": {
